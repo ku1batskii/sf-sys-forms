@@ -1,5 +1,5 @@
 {
-  "name": "kulbatskii-forms",
+  "name": "sf-sys-forms",
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
