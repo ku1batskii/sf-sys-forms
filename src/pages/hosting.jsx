@@ -214,7 +214,7 @@ const CRITICAL_IDS = ["2.3", "2.4", "4.1", "5.1", "5.3"]
 export default function Hosting() {
   return (
     <Questionnaire
-      title="Хостинг-платформа с автодеплоем"
+      title="Бесопасные системы"
       blocks={BLOCKS}
       criticalIds={CRITICAL_IDS}
       dbPath="hosting"
