@@ -137,7 +137,7 @@ const BLOCKS = [
   },
   {
     id: 3, num: "03", title: "Операционка",
-    respondent: "Dima", tag: "OPS",
+    respondent: "Vlad", tag: "OPS",
     questions: [
       {
         id: "3.1", text: "Режим поддержки", hint: "Это идёт на сайт — клиент смотрит на это перед покупкой",
