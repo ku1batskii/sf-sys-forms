@@ -18,9 +18,9 @@ const TAG_STYLES = [
   { bg: "#d1fae5", color: "#065f46" },
   { bg: "#ede9fe", color: "#5b21b6" },
   { bg: "#fce7f3", color: "#9d174d" },
+  { bg: "#fef3c7", color: "#92400e" },
 ];
 
-// Firebase не разрешает точки в ключах — заменяем на __
 const toFK = (key) => key.replace(/\./g, "__");
 const fromFK = (key) => key.replace(/__/g, ".");
 
@@ -30,7 +30,290 @@ function isAnswered(q, answers) {
   return !!answers[q.id]?.trim();
 }
 
-function SingleChoice({ q, answers, onChange, isMobile }) {
+function getAnswerText(q, answers) {
+  if (q.type === "multifield") {
+    return q.fields.map(f => `${f.label} ${answers[f.key]?.trim() || "—"}`).join("\n");
+  }
+  if (q.type === "rank") {
+    return q.options.map((o, i) => `[${answers[`${q.id}_rank_${i}`] || "—"}] ${o}`).join("\n");
+  }
+  if (q.type === "multi") {
+    const selected = answers[q.id] ? answers[q.id].split("|") : [];
+    return selected.length ? selected.join(", ") : "—";
+  }
+  return answers[q.id]?.trim() || "—";
+}
+
+function exportToPDF(title, blocks, answers, sessionId) {
+  const date = new Date().toLocaleDateString("ru-RU");
+
+  let html = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title} — Опросник</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700&family=Inter+Tight:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter Tight', sans-serif;
+    color: #0a0f1c;
+    background: #fff;
+    padding: 40px;
+    font-size: 13px;
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #0a0f1c;
+    margin-bottom: 32px;
+  }
+  .header-left h1 {
+    font-family: 'Manrope', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 4px;
+  }
+  .header-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .block {
+    margin-bottom: 32px;
+    page-break-inside: avoid;
+  }
+  .block-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #0a0f1c;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+  }
+  .block-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .block-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .block-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-left: auto;
+  }
+  .block-body {
+    border: 1px solid #e5e7eb;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  }
+  .question {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 12px;
+  }
+  .question:last-child { border-bottom: none; }
+  .question.critical { background: #eff6ff; }
+  .question.answered { background: #f0fdf4; }
+  .q-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #6b7280;
+    padding-top: 2px;
+  }
+  .q-id.critical-id { color: #2563eb; font-weight: 500; }
+  .q-text {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #1a2235;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+  .q-answer {
+    font-size: 13px;
+    color: #0a0f1c;
+    white-space: pre-line;
+    background: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    min-height: 32px;
+  }
+  .q-answer.empty {
+    color: #9ca3af;
+    font-style: italic;
+  }
+  .q-critical-badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #2563eb;
+    border: 1px solid #2563eb;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .summary {
+    display: flex;
+    gap: 24px;
+    padding: 16px 20px;
+    background: #f5f6f8;
+    border-radius: 8px;
+    margin-bottom: 32px;
+  }
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .summary-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .summary-value {
+    font-family: 'Manrope', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #0a0f1c;
+  }
+  .footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #9ca3af;
+    display: flex;
+    justify-content: space-between;
+  }
+  @media print {
+    body { padding: 24px; }
+    .block { page-break-inside: avoid; }
+    .no-print { display: none; }
+  }
+  .print-btn {
+    display: block;
+    margin: 0 auto 32px;
+    padding: 12px 32px;
+    background: #0a0f1c;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+  }
+  .print-btn:hover { background: #2563eb; }
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">↓ Сохранить как PDF</button>
+
+<div class="header">
+  <div class="header-left">
+    <h1>${title}</h1>
+    <div class="header-meta">Опросник · Сессия: ${sessionId} · ${date}</div>
+  </div>
+  <div class="header-meta" style="text-align:right">KULBATSKII OS · SOP v1.2</div>
+</div>
+`;
+
+  // Summary
+  const totalQ = blocks.reduce((s, b) => s + b.questions.length, 0);
+  const answeredCount = blocks.reduce((s, b) => s + b.questions.filter(q => isAnswered(q, answers)).length, 0);
+  const pct = Math.round((answeredCount / totalQ) * 100);
+
+  html += `
+<div class="summary">
+  <div class="summary-item">
+    <span class="summary-label">Заполнено</span>
+    <span class="summary-value">${answeredCount}/${totalQ}</span>
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">Прогресс</span>
+    <span class="summary-value">${pct}%</span>
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">Блоков</span>
+    <span class="summary-value">${blocks.length}</span>
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">Дата</span>
+    <span class="summary-value" style="font-size:14px;padding-top:4px">${date}</span>
+  </div>
+</div>
+`;
+
+  blocks.forEach((b, bi) => {
+    const ts = TAG_STYLES[bi % TAG_STYLES.length];
+    html += `
+<div class="block">
+  <div class="block-header">
+    <span class="block-num">${b.num}</span>
+    <span class="block-title">${b.title}</span>
+    <span class="block-tag" style="background:${ts.bg};color:${ts.color}">${b.tag}</span>
+  </div>
+  <div class="block-body">`;
+
+    b.questions.forEach(q => {
+      const answered = isAnswered(q, answers);
+      const answerText = getAnswerText(q, answers);
+      const isEmpty = answerText === "—";
+      html += `
+    <div class="question ${q.critical ? "critical" : ""} ${answered ? "answered" : ""}">
+      <div class="q-id ${q.critical ? "critical-id" : ""}">${q.id}${q.critical ? "<br><span style='font-size:9px;color:#2563eb'>КРИТ</span>" : ""}</div>
+      <div>
+        <div class="q-text">${q.text}</div>
+        <div class="q-answer ${isEmpty ? "empty" : ""}">${isEmpty ? "Не заполнено" : answerText}</div>
+      </div>
+    </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  html += `
+<div class="footer">
+  <span>KULBATSKII OS · SOP v1.2 · ${title}</span>
+  <span>Сессия: ${sessionId} · ${date}</span>
+</div>
+</body>
+</html>`;
+
+  const w = window.open("", "_blank");
+  w.document.write(html);
+  w.document.close();
+}
+
+function SingleChoice({ q, answers, onChange }) {
   const selected = answers[q.id] || "";
   const all = q.optionAlt ? [...q.options, q.optionAlt] : q.options;
   return (
@@ -134,7 +417,7 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
   const [activeBlock, setActiveBlock]   = useState(defaultBlock >= 0 ? defaultBlock : 0);
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 768);
   const [synced, setSynced]             = useState(false);
-  const [copied, setCopied]             = useState(false);
+  const [exported, setExported]         = useState(false);
   const dbRef = useRef(ref(db, `answers/${dbPath}/${sessionId}`));
 
   useEffect(() => {
@@ -148,9 +431,7 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
       if (snap.exists()) {
         const raw = snap.val();
         const converted = {};
-        Object.entries(raw).forEach(([k, v]) => {
-          converted[fromFK(k)] = v;
-        });
+        Object.entries(raw).forEach(([k, v]) => { converted[fromFK(k)] = v; });
         setAnswers(converted);
       }
       setSynced(true);
@@ -161,10 +442,14 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
     const updated = { ...answers, [key]: val };
     setAnswers(updated);
     const firebaseData = {};
-    Object.entries(updated).forEach(([k, v]) => {
-      firebaseData[toFK(k)] = v;
-    });
+    Object.entries(updated).forEach(([k, v]) => { firebaseData[toFK(k)] = v; });
     set(dbRef.current, firebaseData);
+  };
+
+  const handleExport = () => {
+    exportToPDF(title, blocks, answers, sessionId);
+    setExported(true);
+    setTimeout(() => setExported(false), 2000);
   };
 
   const totalQ        = blocks.reduce((s, b) => s + b.questions.length, 0);
@@ -176,23 +461,6 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
   const progress      = Math.round((answered / totalQ) * 100);
   const block         = blocks[activeBlock];
   const blockAnswered = block.questions.filter(q => isAnswered(q, answers)).length;
-
-  const copyAll = () => {
-    let out = `${title}\nСессия: ${sessionId}\n${"─".repeat(60)}\n\n`;
-    blocks.forEach(b => {
-      out += `${b.num} — ${b.title.toUpperCase()}\n${"─".repeat(40)}\n`;
-      b.questions.forEach(q => {
-        out += `[${q.id}]${q.critical ? " ⚠" : ""} ${q.text}\n`;
-        if (q.type === "multifield") q.fields.forEach(f => { out += `  ${f.label} ${answers[f.key]?.trim() || "—"}\n`; });
-        else if (q.type === "rank")  q.options.forEach((o, i) => { out += `  [${answers[`${q.id}_rank_${i}`] || "—"}] ${o}\n`; });
-        else out += `→ ${answers[q.id]?.trim() || "(нет ответа)"}\n`;
-        out += "\n";
-      });
-    });
-    navigator.clipboard.writeText(out);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   if (!synced) return (
     <div style={{ minHeight: "100vh", background: T.snow, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: body }}>
@@ -223,6 +491,8 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
         .btn-n:disabled{opacity:0.35;cursor:not-allowed;}
         .btn-e{transition:background 0.15s,transform 0.15s;}
         .btn-e:hover{background:${T.accent}!important;transform:translateY(-1px);}
+        .btn-pdf{transition:background 0.15s,transform 0.15s,box-shadow 0.15s;}
+        .btn-pdf:hover{background:${T.accentDark}!important;transform:translateY(-1px);box-shadow:0 8px 20px -6px rgba(37,99,235,0.4);}
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .fade-up{animation:fadeUp 0.35s cubic-bezier(0.2,0.8,0.2,1) both;}
         @keyframes pd{0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,0.2)}50%{box-shadow:0 0 0 5px rgba(16,185,129,0.1)}}
@@ -244,7 +514,7 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
               {!isMobile && <div style={{ fontFamily:mono,fontSize:11,color:T.mute }}>сессия: {sessionId}</div>}
             </div>
           </div>
-          <div style={{ display:"flex",alignItems:"center",gap:isMobile?8:18,flexShrink:0 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:isMobile?8:16,flexShrink:0 }}>
             {criticalIds.length > 0 && (
               <div style={{ display:"flex",alignItems:"center",gap:5 }}>
                 <span style={{ fontFamily:mono,fontSize:isMobile?9:11,color:T.mute }}>КРИТ</span>
@@ -257,8 +527,8 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
               </div>
               <span style={{ fontFamily:mono,fontSize:11,color:T.graphite,minWidth:28 }}>{progress}%</span>
             </div>
-            <button onClick={copyAll} style={{ display:"flex",alignItems:"center",gap:6,padding:isMobile?"7px 10px":"8px 14px",fontSize:isMobile?12:13.5,fontWeight:500,background:"transparent",color:T.ink,border:`1px solid ${T.hair}`,borderRadius:8,whiteSpace:"nowrap",transition:"border-color 0.15s" }}>
-              {copied?<><span style={{color:T.signal}}>✓</span>{!isMobile&&" Скопировано"}</>:<>&#8599;{!isMobile&&" Копировать"}</>}
+            <button className="btn-pdf" onClick={handleExport} style={{ display:"flex",alignItems:"center",gap:6,padding:isMobile?"8px 12px":"9px 16px",fontSize:isMobile?12:13.5,fontWeight:600,background:T.accent,color:"#fff",border:"none",borderRadius:8,whiteSpace:"nowrap" }}>
+              {exported ? "✓ Открыт" : isMobile ? "↓ PDF" : "↓ Экспорт PDF"}
             </button>
           </div>
         </div>
@@ -342,6 +612,11 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
                 })}
               </div>
             )}
+
+            {/* PDF export в сайдбаре */}
+            <button className="btn-pdf" onClick={handleExport} style={{ marginTop:20,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"11px 16px",fontSize:13.5,fontWeight:600,background:T.accent,color:"#fff",border:"none",borderRadius:8 }}>
+              ↓ Экспорт PDF
+            </button>
           </nav>
         )}
 
@@ -439,9 +714,9 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
                 Дальше →
               </button>
             ) : (
-              <button className="btn-e" onClick={copyAll}
-                style={{ flex:isMobile?1:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"11px 18px",fontSize:14,fontWeight:500,background:answered===totalQ?T.signal:T.ink,color:"#fff",border:"none",borderRadius:8 }}>
-                {copied?"✓ Скопировано":"↗ Экспорт"}
+              <button className="btn-pdf" onClick={handleExport}
+                style={{ flex:isMobile?1:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"11px 18px",fontSize:14,fontWeight:600,background:T.accent,color:"#fff",border:"none",borderRadius:8 }}>
+                {exported?"✓ Открыт":"↓ Экспорт PDF"}
               </button>
             )}
           </div>
