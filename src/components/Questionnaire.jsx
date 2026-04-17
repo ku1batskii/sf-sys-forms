@@ -11,6 +11,7 @@ const T = {
 const mono = "'JetBrains Mono', monospace";
 const display = "Manrope, sans-serif";
 const body = "'Inter Tight', sans-serif";
+
 const TAG_STYLES = [
   { bg: "#fef3c7", color: "#92400e" },
   { bg: "#eff6ff", color: "#1d4ed8" },
@@ -18,6 +19,10 @@ const TAG_STYLES = [
   { bg: "#ede9fe", color: "#5b21b6" },
   { bg: "#fce7f3", color: "#9d174d" },
 ];
+
+// Firebase не разрешает точки в ключах — заменяем на __
+const toFK = (key) => key.replace(/\./g, "__");
+const fromFK = (key) => key.replace(/__/g, ".");
 
 function isAnswered(q, answers) {
   if (q.type === "multifield") return q.fields.some(f => answers[f.key]?.trim());
@@ -114,10 +119,10 @@ function MultiField({ q, answers, onChange, isMobile }) {
 }
 
 function QInput({ q, answers, onChange, isMobile }) {
-  if (q.type === "single")    return <SingleChoice q={q} answers={answers} onChange={onChange} isMobile={isMobile} />;
-  if (q.type === "multi")     return <MultiChoice  q={q} answers={answers} onChange={onChange} isMobile={isMobile} />;
-  if (q.type === "rank")      return <RankChoice   q={q} answers={answers} onChange={onChange} isMobile={isMobile} />;
-  if (q.type === "multifield") return <MultiField  q={q} answers={answers} onChange={onChange} isMobile={isMobile} />;
+  if (q.type === "single")     return <SingleChoice q={q} answers={answers} onChange={onChange} isMobile={isMobile} />;
+  if (q.type === "multi")      return <MultiChoice  q={q} answers={answers} onChange={onChange} isMobile={isMobile} />;
+  if (q.type === "rank")       return <RankChoice   q={q} answers={answers} onChange={onChange} isMobile={isMobile} />;
+  if (q.type === "multifield") return <MultiField   q={q} answers={answers} onChange={onChange} isMobile={isMobile} />;
   return null;
 }
 
@@ -125,11 +130,11 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
   const sessionId = new URLSearchParams(window.location.search).get("role") || "user";
   const defaultBlock = blocks.findIndex(b => b.respondent?.toLowerCase().includes(sessionId.toLowerCase()));
 
-  const [answers, setAnswers]         = useState({});
-  const [activeBlock, setActiveBlock] = useState(defaultBlock >= 0 ? defaultBlock : 0);
-  const [isMobile, setIsMobile]       = useState(window.innerWidth < 768);
-  const [synced, setSynced]           = useState(false);
-  const [copied, setCopied]           = useState(false);
+  const [answers, setAnswers]           = useState({});
+  const [activeBlock, setActiveBlock]   = useState(defaultBlock >= 0 ? defaultBlock : 0);
+  const [isMobile, setIsMobile]         = useState(window.innerWidth < 768);
+  const [synced, setSynced]             = useState(false);
+  const [copied, setCopied]             = useState(false);
   const dbRef = useRef(ref(db, `answers/${dbPath}/${sessionId}`));
 
   useEffect(() => {
@@ -140,7 +145,14 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
 
   useEffect(() => {
     onValue(dbRef.current, snap => {
-      if (snap.exists()) setAnswers(snap.val());
+      if (snap.exists()) {
+        const raw = snap.val();
+        const converted = {};
+        Object.entries(raw).forEach(([k, v]) => {
+          converted[fromFK(k)] = v;
+        });
+        setAnswers(converted);
+      }
       setSynced(true);
     });
   }, []);
@@ -148,17 +160,21 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
   const handleAnswer = (key, val) => {
     const updated = { ...answers, [key]: val };
     setAnswers(updated);
-    set(dbRef.current, updated);
+    const firebaseData = {};
+    Object.entries(updated).forEach(([k, v]) => {
+      firebaseData[toFK(k)] = v;
+    });
+    set(dbRef.current, firebaseData);
   };
 
-  const totalQ       = blocks.reduce((s, b) => s + b.questions.length, 0);
-  const answered     = blocks.reduce((s, b) => s + b.questions.filter(q => isAnswered(q, answers)).length, 0);
-  const critDone     = criticalIds.filter(id => {
+  const totalQ        = blocks.reduce((s, b) => s + b.questions.length, 0);
+  const answered      = blocks.reduce((s, b) => s + b.questions.filter(q => isAnswered(q, answers)).length, 0);
+  const critDone      = criticalIds.filter(id => {
     const q = blocks.flatMap(b => b.questions).find(q => q.id === id);
     return q ? isAnswered(q, answers) : false;
   }).length;
-  const progress     = Math.round((answered / totalQ) * 100);
-  const block        = blocks[activeBlock];
+  const progress      = Math.round((answered / totalQ) * 100);
+  const block         = blocks[activeBlock];
   const blockAnswered = block.questions.filter(q => isAnswered(q, answers)).length;
 
   const copyAll = () => {
@@ -242,7 +258,7 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
               <span style={{ fontFamily:mono,fontSize:11,color:T.graphite,minWidth:28 }}>{progress}%</span>
             </div>
             <button onClick={copyAll} style={{ display:"flex",alignItems:"center",gap:6,padding:isMobile?"7px 10px":"8px 14px",fontSize:isMobile?12:13.5,fontWeight:500,background:"transparent",color:T.ink,border:`1px solid ${T.hair}`,borderRadius:8,whiteSpace:"nowrap",transition:"border-color 0.15s" }}>
-              {copied?<><span style={{color:T.signal}}>✓</span>{!isMobile&&" Скопировано"}</>:<>↗{!isMobile&&" Копировать всё"}</>}
+              {copied?<><span style={{color:T.signal}}>✓</span>{!isMobile&&" Скопировано"}</>:<>&#8599;{!isMobile&&" Копировать"}</>}
             </button>
           </div>
         </div>
@@ -279,6 +295,7 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
 
       {/* Body */}
       <div style={{ maxWidth:1100,margin:"0 auto",padding:isMobile?"20px 16px":"36px 32px",display:"flex",gap:28,alignItems:"flex-start" }}>
+
         {/* Sidebar */}
         {!isMobile && (
           <nav style={{ width:234,flexShrink:0,position:"sticky",top:80 }}>
