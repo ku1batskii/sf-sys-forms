@@ -1,5 +1,4 @@
-import Questionnaire from ‘../components/Questionnaire’
-
+import Questionnaire from "../components/Questionnaire"
 const BLOCKS = [
 // ─── 01 ПРОФИЛЬ КЛИЕНТА ───────────────────────────────────────
 {
