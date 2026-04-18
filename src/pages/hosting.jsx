@@ -746,7 +746,7 @@ const CRITICAL_IDS = [
 export default function Hosting() {
   return (
     <Questionnaire
-      title="Запуск хостинг-продукта"
+      title="Безопасные системы"
       blocks={BLOCKS}
       criticalIds={CRITICAL_IDS}
       dbPath="hosting"
