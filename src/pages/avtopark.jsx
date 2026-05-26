@@ -385,7 +385,7 @@ const CRITICAL_IDS = ["1", "2", "3", "5", "6", "7", "9", "10", "11", "17"]
 export default function Avtopark() {
   return (
     <Questionnaire
-      title="Автопарк Оптиной Пустыни"
+      title="Оптиной Пустыни"
       blocks={BLOCKS}
       criticalIds={CRITICAL_IDS}
       dbPath="avtopark"
