@@ -365,14 +365,6 @@ const BLOCKS = [
           { label: "Что критично к первому релизу:", key: "b717_critical", placeholder: "___" },
         ],
       },
-      {
-        id: "B7.18", text: "Ориентир по срокам первого рабочего релиза и по бюджету этапа 1 (для калибровки объёма MVP).",
-        type: "multifield",
-        fields: [
-          { label: "Ориентир по срокам:", key: "b718_time", placeholder: "___" },
-          { label: "Ориентир по бюджету:", key: "b718_budget", placeholder: "___" },
-        ],
-      },
     ],
   },
 ]
