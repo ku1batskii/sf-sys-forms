@@ -3,6 +3,7 @@ import Hosting from "./pages/hosting"
 import LiderKrovlya from "./pages/lider-krovlya"
 import Avtopark from "./pages/avtopark"
 import Roman from "./pages/roman"
+import MaxBot from "./pages/max-bot"
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/lider-krovlya" element={<LiderKrovlya />} />
         <Route path="/avtopark" element={<Avtopark />} />
         <Route path="/roman" element={<Roman />} />
+        <Route path="/max-bot" element={<MaxBot />} />
         {/* НОВЫЕ СТРАНИЦЫ ДОБАВЛЯЕШЬ ЗДЕСЬ */}
         <Route path="*" element={<Navigate to="/hosting" />} />
       </Routes>
