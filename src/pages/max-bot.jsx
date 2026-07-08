@@ -382,7 +382,7 @@ const CRITICAL_IDS = ["A1.1", "A2.5", "A2.6", "A3.9", "A6.20", "B1.1", "B2.4", "
 export default function MaxBot() {
   return (
     <Questionnaire
-      title="MAX-бот показаний · интеграция Р4Ю"
+      title="MAX-бот Р4Ю"
       blocks={BLOCKS}
       criticalIds={CRITICAL_IDS}
       dbPath="max-bot"
