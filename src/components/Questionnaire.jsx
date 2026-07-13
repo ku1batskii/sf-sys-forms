@@ -318,7 +318,7 @@ function exportToPDF(title, blocks, answers, sessionId) {
   w.document.close();
 }
 
-function SingleChoice({ q, answers, onChange }) {
+function SingleChoice({ q, answers, onChange, isMobile }) {
   const selected = answers[q.id] || "";
   const all = q.optionAlt ? [...q.options, q.optionAlt] : q.options;
   return (
@@ -328,15 +328,32 @@ function SingleChoice({ q, answers, onChange }) {
         const isAlt = opt === q.optionAlt;
         return (
           <div key={i}>
-            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "9px 12px", borderRadius: 8, border: `1px solid ${active ? T.accent : T.hair}`, background: active ? T.accentSoft : T.paper, transition: "all 0.15s" }}>
-              <div style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.hair}`, background: active ? T.accent : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {active && <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.paper }} />}
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: isMobile ? "12px 14px" : "9px 12px", borderRadius: 8, border: `1px solid ${active ? T.accent : T.hair}`, background: active ? T.accentSoft : T.paper, transition: "all 0.15s" }}>
+              <div style={{ width: isMobile ? 20 : 16, height: isMobile ? 20 : 16, marginTop: isMobile ? 1 : 0, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.hair}`, background: active ? T.accent : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {active && <div style={{ width: isMobile ? 7 : 6, height: isMobile ? 7 : 6, borderRadius: "50%", background: T.paper }} />}
               </div>
               <input type="radio" name={q.id} value={opt} checked={active} onChange={() => onChange(q.id, opt)} style={{ display: "none" }} />
-              <span style={{ fontSize: 14, color: active ? T.ink : T.ink2, fontWeight: active ? 500 : 400 }}>{opt}</span>
+              <span style={{ fontSize: isMobile ? 15 : 14, color: active ? T.ink : T.ink2, fontWeight: active ? 500 : 400, lineHeight: 1.4, wordBreak: "break-word" }}>{opt}</span>
             </label>
             {active && isAlt && q.extras?.map(ex => (
-              <input key={ex.key} value={answers[ex.key] || ""} onChange={e => onChange(ex.key, e.target.value)} placeholder={ex.label} style={{ marginTop: 6, marginLeft: 36, width: "calc(100% - 36px)", padding: "8px 12px", fontSize: 13.5, color: T.ink, background: T.paper, border: `1px solid ${T.hair}`, borderRadius: 8, fontFamily: body }} />
+              <input
+                key={ex.key}
+                value={answers[ex.key] || ""}
+                onChange={e => onChange(ex.key, e.target.value)}
+                placeholder={ex.label}
+                style={{
+                  marginTop: 6,
+                  marginLeft: isMobile ? 0 : 36,
+                  width: isMobile ? "100%" : "calc(100% - 36px)",
+                  padding: "10px 12px",
+                  fontSize: isMobile ? 16 : 13.5,
+                  color: T.ink,
+                  background: T.paper,
+                  border: `1px solid ${T.hair}`,
+                  borderRadius: 8,
+                  fontFamily: body,
+                }}
+              />
             ))}
           </div>
         );
@@ -345,7 +362,7 @@ function SingleChoice({ q, answers, onChange }) {
   );
 }
 
-function MultiChoice({ q, answers, onChange }) {
+function MultiChoice({ q, answers, onChange, isMobile }) {
   const selected = answers[q.id] ? answers[q.id].split("|") : [];
   const toggle = opt => {
     const next = selected.includes(opt) ? selected.filter(s => s !== opt) : [...selected, opt];
@@ -356,35 +373,40 @@ function MultiChoice({ q, answers, onChange }) {
       {q.options.map((opt, i) => {
         const active = selected.includes(opt);
         return (
-          <label key={i} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "9px 12px", borderRadius: 8, border: `1px solid ${active ? T.accent : T.hair}`, background: active ? T.accentSoft : T.paper, transition: "all 0.15s" }}>
-            <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${active ? T.accent : T.hair}`, background: active ? T.accent : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {active && <span style={{ color: T.paper, fontSize: 10 }}>✓</span>}
+          <label key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: isMobile ? "12px 14px" : "9px 12px", borderRadius: 8, border: `1px solid ${active ? T.accent : T.hair}`, background: active ? T.accentSoft : T.paper, transition: "all 0.15s" }}>
+            <div style={{ width: isMobile ? 20 : 16, height: isMobile ? 20 : 16, marginTop: isMobile ? 1 : 0, borderRadius: 4, border: `2px solid ${active ? T.accent : T.hair}`, background: active ? T.accent : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {active && <span style={{ color: T.paper, fontSize: isMobile ? 11 : 10 }}>✓</span>}
             </div>
             <input type="checkbox" checked={active} onChange={() => toggle(opt)} style={{ display: "none" }} />
-            <span style={{ fontSize: 14, color: active ? T.ink : T.ink2 }}>{opt}</span>
+            <span style={{ fontSize: isMobile ? 15 : 14, color: active ? T.ink : T.ink2, lineHeight: 1.4, wordBreak: "break-word" }}>{opt}</span>
           </label>
         );
       })}
       {q.extra && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-          <span style={{ fontFamily: mono, fontSize: 12, color: T.mute, whiteSpace: "nowrap" }}>{q.extra.label}</span>
-          <input value={answers[q.extra.key] || ""} onChange={e => onChange(q.extra.key, e.target.value)} placeholder="___" style={{ flex: 1, padding: "7px 10px", fontSize: 13.5, color: T.ink, background: T.paper, border: `1px solid ${T.hair}`, borderRadius: 8, fontFamily: body }} />
+        <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 8, marginTop: 4, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+          <span style={{ fontFamily: mono, fontSize: 12, color: T.mute, whiteSpace: isMobile ? "normal" : "nowrap", width: isMobile ? "100%" : "auto", wordBreak: "break-word", lineHeight: 1.4 }}>{q.extra.label}</span>
+          <input
+            value={answers[q.extra.key] || ""}
+            onChange={e => onChange(q.extra.key, e.target.value)}
+            placeholder="___"
+            style={{ flex: 1, minWidth: 0, width: isMobile ? "100%" : "auto", padding: "9px 10px", fontSize: isMobile ? 16 : 13.5, color: T.ink, background: T.paper, border: `1px solid ${T.hair}`, borderRadius: 8, fontFamily: body }}
+          />
         </div>
       )}
     </div>
   );
 }
 
-function RankChoice({ q, answers, onChange }) {
+function RankChoice({ q, answers, onChange, isMobile }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {q.options.map((opt, i) => {
         const key = `${q.id}_rank_${i}`;
         const val = answers[key] || "";
         return (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, border: `1px solid ${val ? T.accent : T.hair}`, background: val ? T.accentSoft : T.paper }}>
-            <input type="number" min="1" max={q.options.length} value={val} onChange={e => onChange(key, e.target.value)} placeholder="—" style={{ width: 44, padding: "4px 8px", fontSize: 14, fontWeight: 600, fontFamily: mono, color: T.accent, background: T.paper, border: `1px solid ${T.hair}`, borderRadius: 6, textAlign: "center" }} />
-            <span style={{ fontSize: 14, color: T.ink2 }}>{opt}</span>
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "10px 12px" : "9px 12px", borderRadius: 8, border: `1px solid ${val ? T.accent : T.hair}`, background: val ? T.accentSoft : T.paper }}>
+            <input type="number" min="1" max={q.options.length} value={val} onChange={e => onChange(key, e.target.value)} placeholder="—" style={{ width: isMobile ? 52 : 44, flexShrink: 0, padding: "6px 8px", fontSize: isMobile ? 16 : 14, fontWeight: 600, fontFamily: mono, color: T.accent, background: T.paper, border: `1px solid ${T.hair}`, borderRadius: 6, textAlign: "center" }} />
+            <span style={{ fontSize: isMobile ? 15 : 14, color: T.ink2, lineHeight: 1.4, wordBreak: "break-word" }}>{opt}</span>
           </div>
         );
       })}
@@ -397,16 +419,21 @@ function MultiField({ q, answers, onChange, isMobile }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {q.fields.map(f => (
-        <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: isMobile ? "wrap" : "nowrap" }}>
-          <span style={{ fontFamily: mono, fontSize: 12, color: T.mute, flexShrink: 0, minWidth: isMobile ? "100%" : 160 }}>{f.label}</span>
-          <input value={answers[f.key] || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={f.placeholder} style={{ flex: 1, minWidth: 0, padding: "9px 13px", fontSize: 14, color: T.ink, background: T.paper, border: `1px solid ${answers[f.key]?.trim() ? T.accent : T.hair}`, borderRadius: 8, fontFamily: body, transition: "border-color 0.2s" }} />
+        <div key={f.key} style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 6 : 10, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+          <span style={{ fontFamily: mono, fontSize: isMobile ? 12.5 : 12, color: T.mute, flexShrink: 0, width: isMobile ? "100%" : 160, minWidth: isMobile ? "100%" : 160, lineHeight: 1.4, wordBreak: "break-word" }}>{f.label}</span>
+          <input
+            value={answers[f.key] || ""}
+            onChange={e => onChange(f.key, e.target.value)}
+            placeholder={f.placeholder}
+            style={{ flex: 1, minWidth: 0, width: isMobile ? "100%" : "auto", padding: "10px 13px", fontSize: isMobile ? 16 : 14, color: T.ink, background: T.paper, border: `1px solid ${answers[f.key]?.trim() ? T.accent : T.hair}`, borderRadius: 8, fontFamily: body, transition: "border-color 0.2s" }}
+          />
         </div>
       ))}
     </div>
   );
 }
 
-function Percent100({ q, answers, onChange }) {
+function Percent100({ q, answers, onChange, isMobile }) {
   const total = q.fields.reduce((s, f) => s + (parseInt(answers[f.key]) || 0), 0);
   const over = total > 100;
   const exact = total === 100;
@@ -414,14 +441,14 @@ function Percent100({ q, answers, onChange }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {q.fields.map(f => (
         <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: T.mute, flex: 1, lineHeight: 1.3 }}>{f.label}</span>
+          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: T.mute, flex: 1, lineHeight: 1.35, wordBreak: "break-word" }}>{f.label}</span>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
             <input
               type="number" min="0" max="100"
               value={answers[f.key] || ""}
               onChange={e => onChange(f.key, e.target.value)}
               placeholder="0"
-              style={{ width: 60, padding: "7px 10px", fontSize: 14, fontWeight: 600, fontFamily: "'JetBrains Mono',monospace", color: T.accent, background: T.paper, border: `1px solid ${answers[f.key]?.trim() ? T.accent : T.hair}`, borderRadius: 8, textAlign: "center" }}
+              style={{ width: isMobile ? 64 : 60, padding: "7px 8px", fontSize: isMobile ? 16 : 14, fontWeight: 600, fontFamily: "'JetBrains Mono',monospace", color: T.accent, background: T.paper, border: `1px solid ${answers[f.key]?.trim() ? T.accent : T.hair}`, borderRadius: 8, textAlign: "center" }}
             />
             <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 13, color: T.mute }}>%</span>
           </div>
@@ -513,11 +540,13 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: T.snow, fontFamily: body, color: T.ink, WebkitFontSmoothing: "antialiased" }}>
+    <div style={{ minHeight: "100vh", background: T.snow, fontFamily: body, color: T.ink, WebkitFontSmoothing: "antialiased", overflowX: "hidden", width: "100%" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Inter+Tight:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+        html,body{overflow-x:hidden;max-width:100%;}
         *{box-sizing:border-box;margin:0;padding:0;}
-        input,textarea{font-family:'Inter Tight',sans-serif;}
+        img,svg{max-width:100%;}
+        input,textarea{font-family:'Inter Tight',sans-serif;-webkit-text-size-adjust:100%;}
         input:focus,textarea:focus{outline:none;border-color:${T.accent}!important;box-shadow:0 0 0 3px rgba(37,99,235,0.12)!important;}
         button{cursor:pointer;font-family:inherit;}
         .sb-item{transition:background 0.15s;}
@@ -537,18 +566,21 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
         .pd{animation:pd 2s infinite;}
         .tabs{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
         .tabs::-webkit-scrollbar{display:none;}
+        @media (max-width:767px){
+          input,textarea,select{font-size:16px!important;}
+        }
       `}</style>
 
       {/* Header */}
       <header style={{ position:"sticky",top:0,zIndex:50,background:"rgba(250,251,252,0.92)",backdropFilter:"saturate(180%) blur(12px)",WebkitBackdropFilter:"saturate(180%) blur(12px)",borderBottom:`1px solid ${T.hair}` }}>
         <div style={{ maxWidth:1100,margin:"0 auto",padding:`0 ${isMobile?"16px":"32px"}`,display:"flex",alignItems:"center",justifyContent:"space-between",height:isMobile?56:64,gap:12 }}>
-          <div style={{ display:"flex",alignItems:"center",gap:10,minWidth:0 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:10,minWidth:0,flex:"1 1 auto",overflow:"hidden" }}>
             <div style={{ width:26,height:26,borderRadius:7,background:T.ink,position:"relative",overflow:"hidden",flexShrink:0 }}>
               <div style={{ position:"absolute",inset:0,background:`linear-gradient(135deg,${T.accent} 0%,transparent 60%)` }} />
               <div style={{ position:"absolute",top:"50%",left:"50%",width:9,height:9,border:"1.5px solid #fff",borderRadius:"50%",transform:"translate(-50%,-50%)" }} />
             </div>
-            <div>
-              <div style={{ fontFamily:display,fontWeight:700,fontSize:isMobile?13:15,letterSpacing:"-0.02em",whiteSpace:"nowrap" }}>{title}</div>
+            <div style={{ minWidth:0,overflow:"hidden" }}>
+              <div style={{ fontFamily:display,fontWeight:700,fontSize:isMobile?13:15,letterSpacing:"-0.02em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{title}</div>
               {!isMobile && <div style={{ fontFamily:mono,fontSize:11,color:T.mute }}>сессия: {sessionId}</div>}
             </div>
           </div>
@@ -587,7 +619,7 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
                     <span style={{ fontFamily:mono,fontSize:10,color:isActive?T.accent:T.mute }}>{b.num}</span>
                     <span style={{ fontFamily:mono,fontSize:9,fontWeight:500,padding:"1px 5px",borderRadius:100,background:ts.bg,color:ts.color }}>{b.tag}</span>
                   </div>
-                  <div style={{ fontFamily:display,fontSize:12,fontWeight:600,color:isActive?T.ink:T.ink2 }}>{b.title}</div>
+                  <div style={{ fontFamily:display,fontSize:12,fontWeight:600,color:isActive?T.ink:T.ink2,whiteSpace:"nowrap" }}>{b.title}</div>
                   <div style={{ display:"flex",alignItems:"center",gap:5 }}>
                     <div style={{ width:48,height:2,background:T.hair,borderRadius:1,overflow:"hidden" }}>
                       <div style={{ height:"100%",background:bAns===b.questions.length?T.signal:T.accent,width:`${(bAns/b.questions.length)*100}%`,transition:"width 0.3s" }} />
@@ -664,7 +696,7 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
             <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12 }}>
               <div style={{ minWidth:0 }}>
                 <div style={{ fontFamily:mono,fontSize:11,color:T.accent,letterSpacing:"0.05em",marginBottom:5 }}>{block.num}</div>
-                <h2 style={{ fontFamily:display,fontSize:isMobile?20:24,fontWeight:700,letterSpacing:"-0.025em",lineHeight:1.1,marginBottom:8 }}>{block.title}</h2>
+                <h2 style={{ fontFamily:display,fontSize:isMobile?20:24,fontWeight:700,letterSpacing:"-0.025em",lineHeight:1.15,marginBottom:8,wordBreak:"break-word" }}>{block.title}</h2>
                 {block.respondent && (
                   <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap" }}>
                     <span style={{ fontSize:13,color:T.graphite }}>Отвечает:</span>
@@ -685,18 +717,18 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
             {block.questions.map((q,qi) => {
               const filled = isAnswered(q, answers);
               return (
-                <div key={q.id} style={{ padding:isMobile?"14px 16px":"18px 28px",borderBottom:qi<block.questions.length-1?`1px solid ${T.hair}`:"none",background:q.critical?T.accentSoft:"transparent" }}>
+                <div key={q.id} style={{ padding:isMobile?"14px 16px":"18px 28px",borderBottom:qi<block.questions.length-1?`1px solid ${T.hair}`:"none",background:q.critical?T.accentSoft:"transparent",overflow:"hidden" }}>
                   {isMobile ? (
                     <div>
                       <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
                         <span style={{ fontFamily:mono,fontSize:11,color:q.critical?T.accent:T.mute,fontWeight:q.critical?500:400 }}>{q.id}</span>
                         {q.critical && <span style={{ fontFamily:mono,fontSize:8.5,color:T.accent,background:T.paper,border:`1px solid ${T.accent}`,padding:"1px 5px",borderRadius:3 }}>КРИТ</span>}
-                        <div style={{ marginLeft:"auto",width:16,height:16,borderRadius:"50%",background:filled?T.signal:T.hair,display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.2s" }}>
+                        <div style={{ marginLeft:"auto",width:16,height:16,borderRadius:"50%",background:filled?T.signal:T.hair,display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.2s",flexShrink:0 }}>
                           {filled && <span style={{ color:"#fff",fontSize:9 }}>✓</span>}
                         </div>
                       </div>
-                      <div style={{ fontSize:14,fontWeight:500,color:T.ink2,lineHeight:1.5,marginBottom:q.hint?4:10 }}>{q.text}</div>
-                      {q.hint && <div style={{ fontFamily:mono,fontSize:11,color:T.accent,marginBottom:10 }}>→ {q.hint}</div>}
+                      <div style={{ fontSize:14,fontWeight:500,color:T.ink2,lineHeight:1.5,marginBottom:q.hint?4:10,wordBreak:"break-word" }}>{q.text}</div>
+                      {q.hint && <div style={{ fontFamily:mono,fontSize:12.5,color:T.accent,marginBottom:10,lineHeight:1.55,wordBreak:"break-word" }}>→ {q.hint}</div>}
                       <QInput q={q} answers={answers} onChange={handleAnswer} isMobile={true} />
                     </div>
                   ) : (
@@ -705,9 +737,9 @@ export default function Questionnaire({ title, blocks, criticalIds = [], dbPath 
                         <span style={{ fontFamily:mono,fontSize:11.5,color:q.critical?T.accent:T.mute,fontWeight:q.critical?500:400 }}>{q.id}</span>
                         {q.critical && <span style={{ fontFamily:mono,fontSize:8.5,color:T.accent,background:T.paper,border:`1px solid ${T.accent}`,padding:"1px 5px",borderRadius:3 }}>КРИТ</span>}
                       </div>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:14,fontWeight:500,color:T.ink2,lineHeight:1.5,marginBottom:q.hint?4:10 }}>{q.text}</div>
-                        {q.hint && <div style={{ fontFamily:mono,fontSize:11.5,color:T.accent,marginBottom:10 }}>→ {q.hint}</div>}
+                      <div style={{ flex:1,minWidth:0 }}>
+                        <div style={{ fontSize:14,fontWeight:500,color:T.ink2,lineHeight:1.5,marginBottom:q.hint?4:10,wordBreak:"break-word" }}>{q.text}</div>
+                        {q.hint && <div style={{ fontFamily:mono,fontSize:11.5,color:T.accent,marginBottom:10,lineHeight:1.55,wordBreak:"break-word" }}>→ {q.hint}</div>}
                         <QInput q={q} answers={answers} onChange={handleAnswer} isMobile={false} />
                       </div>
                       <div style={{ flexShrink:0,paddingTop:2 }}>
