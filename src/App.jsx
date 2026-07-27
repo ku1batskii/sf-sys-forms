@@ -5,6 +5,7 @@ import Avtopark from "./pages/avtopark"
 import Roman from "./pages/roman"
 import MaxBot from "./pages/max-bot"
 import MaxBot2 from "./pages/max-bot-2"
+import MspAudit from "./pages/msp-audit"
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/roman" element={<Roman />} />
         <Route path="/max-bot" element={<MaxBot />} />
         <Route path="/max-bot-2" element={<MaxBot2 />} />
+        <Route path="/msp-audit" element={<MspAudit />} />
         {/* НОВЫЕ СТРАНИЦЫ ДОБАВЛЯЕШЬ ЗДЕСЬ */}
         <Route path="*" element={<Navigate to="/hosting" />} />
       </Routes>
